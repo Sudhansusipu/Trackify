@@ -1,0 +1,20 @@
+# Backend compiled output
+backend/target/
+*.jar
+*.war
+*.class
+
+# IDE and OS files
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Logs
+crash_log.txt
+*.log
+
+# Node (just in case)
+node_modules/
+dist/

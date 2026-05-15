@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo List | Trackify</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="todo-app premium-dashboard">
+
+  <!-- Premium Animated Background (same as Dashboard) -->
+  <div class="prem-bg" aria-hidden="true">
+    <div class="prem-bg__grid"></div>
+    <div class="prem-bg__orb prem-bg__orb--purple"></div>
+    <div class="prem-bg__orb prem-bg__orb--blue"></div>
+    <div class="prem-bg__orb prem-bg__orb--gold"></div>
+    <div class="glass-shape gs--1"></div>
+    <div class="glass-shape gs--2"></div>
+    <div class="glass-shape gs--3"></div>
+    <div class="light-ray lr--1"></div>
+    <div class="light-ray lr--2"></div>
+    <div class="prem-bg__particles" id="bgParticles"></div>
+    <div class="prem-bg__ring prem-bg__ring--1"></div>
+    <div class="prem-bg__ring prem-bg__ring--2"></div>
+    <div class="prem-bg__ring prem-bg__ring--3"></div>
+    <div class="mouse-glow-cursor" id="mouseGlowCursor"></div>
+  </div>
+
+  <!-- Day-mode landscape -->
+  <div class="day-landscape" aria-hidden="true">
+    <div class="landscape-sun"></div>
+    <div class="landscape-clouds"></div>
+    <div class="landscape-mountains"></div>
+    <div class="landscape-tree"></div>
+    <div class="landscape-grass"></div>
+  </div>
+
+  <div class="app-wrapper">
+    <!-- ========= SIDEBAR ========= -->
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <img src="assets/logo.png" alt="Trackify" class="brand-logo">
+        <div class="sidebar-brand-text">
+          <span class="sidebar-brand-name">Trackify</span>
+          <span class="sidebar-brand-sub">AI Productivity OS</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="dashboard.html">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </a>
+        <a href="expense.html">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Expenses
+        </a>
+        <a class="active" href="todo.html">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Todo List
+        </a>
+        <div class="export-wrap" style="width:100%;">
+          <button data-dropdown-trigger="todoExportDropdown" type="button" aria-label="Export">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export ▾
+          </button>
+          <div class="app-dropdown" id="todoExportDropdown">
+            <a class="dropdown-item" id="exportPdfLink" href="#">Export as PDF</a>
+            <a class="dropdown-item" id="exportExcelLink" href="#">Export as Excel</a>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="profile-trigger" id="openProfileModal" type="button" title="Edit Profile">
+          <span class="profile-mini" data-profile-image data-profile-initials>AK</span>
+          <div class="profile-trigger-text">
+            <span data-profile-name>Aman Kumar</span>
+            <span class="profile-trigger-plan">✦ Premium Plan</span>
+          </div>
+        </button>
+        <button id="logoutBtn" type="button" class="sidebar-logout-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Log Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- ========= MAIN ========= -->
+    <div class="app-main">
+      <header class="app-main-header">
+        <div class="header-greeting">
+          <h1 id="headerGreeting" class="greeting-glow">Good morning, <span data-profile-name>Aman Kumar</span> 👋</h1>
+          <p>Stay organized. Stay productive. Live smart.</p>
+        </div>
+        <div class="app-actions">
+          <div class="topbar-search">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" placeholder="Search anything..." id="topbarSearch">
+          </div>
+          <div class="live-clock">
+            <span class="live-clock__time" id="liveClockTime">--:-- --</span>
+            <span class="live-clock__date" id="liveClockDate">--</span>
+          </div>
+          <div class="streak-counter" title="Daily Streak">🔥 <span id="dailyStreak">0</span></div>
+          <button class="icon-circle" id="pomodoroToggle" type="button" title="Pomodoro Timer">⏱️</button>
+          <button class="icon-circle" id="focusModeToggle" type="button" title="Focus Mode">🎯</button>
+          <div class="notification-wrap">
+            <button class="icon-circle notification-btn" data-dropdown-trigger="notificationDropdown" type="button"><span>🔔</span></button>
+            <strong class="badge" id="notificationBadge" style="display:none;">0</strong>
+            <div class="app-dropdown" id="notificationDropdown">
+              <div id="notificationDropdownList"><div class="dropdown-item" style="color:var(--muted);">No new notifications</div></div>
+            </div>
+          </div>
+          <button class="icon-circle" id="themeToggleBtn" data-theme="night" type="button">☀️</button>
+        </div>
+      </header>
+
+      <main class="todo-shell app-container">
+        <section class="todo-title-row">
+          <div>
+            <h1>Todo List</h1>
+            <p>Plan. Focus. Achieve.</p>
+          </div>
+          <strong id="todoProductivitySummary">Add tasks to see weekly productivity.</strong>
+        </section>
+
+        <section class="add-goal-card premium-panel">
+          <span class="goal-plus">+</span>
+          <div>
+            <h2>Add a new goal</h2>
+            <p>Example: Study daily, fitness, save money</p>
+          </div>
+          <input id="goalNameInput" placeholder="Goal name">
+          <button class="primary-btn" id="addGoalBtn" type="button">Add Goal</button>
+        </section>
+
+        <section class="premium-panel">
+          <div class="panel-head">
+            <h2>My Goals <span id="goalCount">(3)</span></h2>
+          </div>
+          <div id="goalList" class="goal-list"></div>
+        </section>
+
+        <section class="premium-panel">
+          <div class="panel-head">
+            <h2>Add Smart Task</h2>
+          </div>
+          <form id="todoForm" class="todo-smart-form">
+            <input type="text" id="todoTask" placeholder="e.g. Buy milk tomorrow 6pm high" required>
+            <select id="todoGoal"></select>
+            <select id="todoPriority">
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
+            </select>
+            <input type="datetime-local" id="todoDeadline">
+            <select id="todoRecurrence">
+              <option value="NONE">No repeat</option>
+              <option value="DAILY">Daily</option>
+              <option value="WEEKLY">Weekly</option>
+              <option value="MONTHLY">Monthly</option>
+            </select>
+            <input type="number" min="0" id="todoMinutes" placeholder="Minutes spent">
+            <button class="primary-btn" type="submit">Add Task</button>
+          </form>
+        </section>
+
+        <section class="premium-panel todo-controls-panel" style="margin-bottom:1.5rem;">
+          <div class="todo-views" id="todoViews">
+            <button class="active" data-view="all">📥 Inbox</button>
+            <button data-view="today">📅 Today</button>
+            <button data-view="upcoming">📆 Upcoming</button>
+            <button data-view="important">⭐ Important</button>
+          </div>
+          <div class="todo-search-sort">
+            <input type="text" id="todoSearch" placeholder="Search tasks (Ctrl+K)...">
+            <select id="todoSort">
+              <option value="date-asc">Date (Oldest)</option>
+              <option value="date-desc">Date (Newest)</option>
+              <option value="priority">Priority (High to Low)</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="todo-group-grid">
+          <article class="premium-panel">
+            <h2>Pending</h2>
+            <div id="pendingTodoList" class="todo-clean-list"></div>
+          </article>
+          <article class="premium-panel">
+            <h2>Overdue</h2>
+            <div id="overdueTodoList" class="todo-clean-list"></div>
+          </article>
+          <article class="premium-panel">
+            <h2>Completed</h2>
+            <div id="completedTodoList" class="todo-clean-list"></div>
+          </article>
+        </section>
+
+        <section class="premium-panel" style="margin-top:0;">
+          <div class="panel-head"><h2>Weekly Productivity</h2></div>
+          <div style="max-height:240px;display:flex;align-items:center;gap:2rem;flex-wrap:wrap;padding:0.5rem 0;">
+            <div class="chart-container" style="max-width:220px;max-height:220px;height:220px;width:100%;">
+              <canvas id="productivityChart"></canvas>
+            </div>
+            <div style="flex:1;min-width:160px;display:flex;flex-direction:column;gap:0.5rem;">
+              <p id="productivityInsight" class="muted" style="margin:0;">Track tasks to see productivity insights.</p>
+              <div class="linear-progress"><div id="linearProgressBar" style="width:0%;"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <a href="#todoForm" class="fab-btn" title="Add Task">+</a>
+      </main>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="command-palette-backdrop" id="commandPalette">
+    <div class="command-palette-modal">
+      <input type="text" id="commandInput" placeholder="Type a command or search... (e.g., 'Add task: buy milk')">
+      <div class="command-results" id="commandResults"></div>
+    </div>
+  </div>
+  <div class="pomodoro-panel" id="pomodoroPanel">
+    <h3>Pomodoro Focus</h3>
+    <div class="pomodoro-time" id="pomodoroTime">25:00</div>
+    <div class="pomodoro-controls">
+      <button class="primary-btn" id="pomodoroStart">Start</button>
+      <button class="ghost-btn" id="pomodoroReset">Reset</button>
+    </div>
+  </div>
+  <div class="loader" id="loader"><div></div></div>
+  <script src="js/script.js"></script>
+  <script>
+    // Live Clock
+    function updateClock() {
+      const now = new Date();
+      const t = document.getElementById('liveClockTime');
+      const d = document.getElementById('liveClockDate');
+      if (t) t.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      if (d) d.textContent = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    updateClock(); setInterval(updateClock, 1000);
+    // Mouse glow
+    const gc = document.getElementById('mouseGlowCursor');
+    document.addEventListener('mousemove', e => { if (gc) { gc.style.left = e.clientX + 'px'; gc.style.top = e.clientY + 'px'; } });
+    // Particles
+    const pc = document.getElementById('bgParticles');
+    if (pc) { for (let i = 0; i < 60; i++) { const p = document.createElement('div'); p.className = 'particle'; const s = 1 + Math.random() * 2.5; p.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;width:${s}px;height:${s}px;animation-duration:${10+Math.random()*18}s;animation-delay:${-Math.random()*18}s;opacity:${0.15+Math.random()*0.45};`; pc.appendChild(p); } }
+  </script>
+</body>
+</html>

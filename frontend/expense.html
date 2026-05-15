@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expenses | Trackify</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="expense-app premium-dashboard">
+
+  <!-- Premium Animated Background (same as Dashboard) -->
+  <div class="prem-bg" aria-hidden="true">
+    <div class="prem-bg__grid"></div>
+    <div class="prem-bg__orb prem-bg__orb--purple"></div>
+    <div class="prem-bg__orb prem-bg__orb--blue"></div>
+    <div class="prem-bg__orb prem-bg__orb--gold"></div>
+    <div class="glass-shape gs--1"></div>
+    <div class="glass-shape gs--2"></div>
+    <div class="glass-shape gs--3"></div>
+    <div class="light-ray lr--1"></div>
+    <div class="light-ray lr--2"></div>
+    <div class="prem-bg__particles" id="bgParticles"></div>
+    <div class="prem-bg__ring prem-bg__ring--1"></div>
+    <div class="prem-bg__ring prem-bg__ring--2"></div>
+    <div class="prem-bg__ring prem-bg__ring--3"></div>
+    <div class="mouse-glow-cursor" id="mouseGlowCursor"></div>
+  </div>
+
+  <!-- Day-mode landscape -->
+  <div class="day-landscape" aria-hidden="true">
+    <div class="landscape-sun"></div>
+    <div class="landscape-clouds"></div>
+    <div class="landscape-mountains"></div>
+    <div class="landscape-tree"></div>
+    <div class="landscape-grass"></div>
+  </div>
+
+  <div class="app-wrapper">
+    <!-- ========= SIDEBAR ========= -->
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <img src="assets/logo.png" alt="Trackify" class="brand-logo">
+        <div class="sidebar-brand-text">
+          <span class="sidebar-brand-name">Trackify</span>
+          <span class="sidebar-brand-sub">AI Productivity OS</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="dashboard.html">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </a>
+        <a class="active" href="expense.html">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          Expenses
+        </a>
+        <a href="todo.html">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Todo List
+        </a>
+        <div class="export-wrap" style="width:100%;">
+          <button data-dropdown-trigger="expenseExportDropdown" type="button" aria-label="Export">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export ▾
+          </button>
+          <div class="app-dropdown" id="expenseExportDropdown">
+            <a class="dropdown-item" id="expensePdfExport" href="#">Export as PDF</a>
+            <a class="dropdown-item" id="expenseExcelExport" href="#">Export as Excel</a>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="profile-trigger" id="openProfileModal" type="button" title="Edit Profile">
+          <span class="profile-mini" data-profile-image data-profile-initials>AK</span>
+          <div class="profile-trigger-text">
+            <span data-profile-name>Aman Kumar</span>
+            <span class="profile-trigger-plan">✦ Premium Plan</span>
+          </div>
+        </button>
+        <button id="logoutBtn" type="button" class="sidebar-logout-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Log Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- ========= MAIN ========= -->
+    <div class="app-main">
+      <header class="app-main-header">
+        <div class="header-greeting">
+          <h1 id="headerGreeting" class="greeting-glow">Good morning, <span data-profile-name>Aman Kumar</span> 👋</h1>
+          <p>Stay organized. Stay productive. Live smart.</p>
+        </div>
+        <div class="app-actions">
+          <div class="topbar-search">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" placeholder="Search anything..." id="topbarSearch">
+          </div>
+          <div class="live-clock">
+            <span class="live-clock__time" id="liveClockTime">--:-- --</span>
+            <span class="live-clock__date" id="liveClockDate">--</span>
+          </div>
+          <div class="notification-wrap">
+            <button class="icon-circle notification-btn" data-dropdown-trigger="notificationDropdown" type="button"><span>🔔</span></button>
+            <strong class="badge" id="notificationBadge" style="display:none;">0</strong>
+            <div class="app-dropdown" id="notificationDropdown">
+              <div id="notificationDropdownList"><div class="dropdown-item" style="color:var(--muted);">No new notifications</div></div>
+            </div>
+          </div>
+          <button class="icon-circle" id="themeToggleBtn" data-theme="night" type="button">☀️</button>
+        </div>
+      </header>
+
+      <main class="expense-shell app-container">
+        <header class="expense-hero premium-panel">
+          <div>
+            <p class="eyebrow">Money System</p>
+            <h1>Expense Manager</h1>
+            <p>Track spending, salary, savings, alerts, and daily color indicators.</p>
+          </div>
+        </header>
+
+        <section class="expense-setup premium-panel">
+          <form id="profileForm" class="finance-form">
+            <label>
+              Monthly Salary
+              <input type="number" id="monthlySalary" placeholder="Enter salary" min="0" step="0.01">
+            </label>
+            <label>
+              Total Savings
+              <input type="number" id="totalSavings" placeholder="Current savings" min="0" step="0.01">
+            </label>
+            <label>
+              Spending Limit
+              <input type="number" id="spendingLimit" placeholder="Monthly limit" min="0" step="0.01">
+            </label>
+            <button class="primary-btn" type="submit">Save</button>
+          </form>
+          <p id="spendingAlert" class="expense-alert"></p>
+        </section>
+
+        <section class="summary-grid expense-summary-grid">
+          <article class="summary-card glow-card">
+            <div class="card-top-glow card-top-glow--red"></div>
+            <div class="summary-icon red">📉</div>
+            <span>Total Expenses</span>
+            <strong id="expenseTotal">₹0</strong>
+            <small id="expenseTrend">This month</small>
+          </article>
+          <article class="summary-card glow-card">
+            <div class="card-top-glow card-top-glow--blue"></div>
+            <div class="summary-icon">💰</div>
+            <span>Remaining Balance</span>
+            <strong id="remainingBalance">₹0</strong>
+            <small>Salary - expenses</small>
+          </article>
+          <article class="summary-card glow-card">
+            <div class="card-top-glow card-top-glow--green"></div>
+            <div class="summary-icon green">📈</div>
+            <span>Total Savings</span>
+            <strong id="savingsTotal">₹0</strong>
+            <small id="savingsRate">0% saving rate</small>
+          </article>
+          <article class="summary-card glow-card">
+            <div class="card-top-glow card-top-glow--purple"></div>
+            <div class="summary-icon">🏆</div>
+            <span>Highest Category</span>
+            <strong id="topCategory">None</strong>
+            <small id="expenseInsight">Add expenses to unlock insights.</small>
+          </article>
+        </section>
+
+        <section class="expense-tools premium-panel">
+          <div class="tool-row">
+            <input type="search" id="expenseSearch" placeholder="Search by name or category">
+            <div class="segmented-controls" id="expenseRangeFilters">
+              <button type="button" data-range="day">Day</button>
+              <button type="button" data-range="week">Week</button>
+              <button type="button" class="active" data-range="month">Month</button>
+            </div>
+            <button class="ghost-btn" id="closeMonthBtn" type="button">Close Month</button>
+          </div>
+        </section>
+
+        <section class="expense-main-grid">
+          <article class="premium-panel calendar-panel">
+            <div class="panel-head">
+              <button type="button" id="prevMonth">‹</button>
+              <h2 id="calendarTitle">Month</h2>
+              <button type="button" id="nextMonth">›</button>
+            </div>
+            <div class="calendar-weekdays">
+              <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+            </div>
+            <div id="expenseCalendar" class="expense-calendar"></div>
+          </article>
+
+          <article class="premium-panel entry-panel">
+            <div class="panel-head">
+              <h2 id="selectedExpenseDate">Today</h2>
+              <span class="pill" id="selectedDayTotal">₹0</span>
+            </div>
+            <form id="expenseForm" class="expense-entry-form">
+              <label>
+                Description
+                <input type="text" id="expenseDescription" placeholder="Grocery, bus, lunch..." required>
+              </label>
+              <label>
+                Category
+                <select id="expenseCategory" required>
+                  <option value="Breakfast">🍳 Breakfast</option>
+                  <option value="Lunch">🍲 Lunch</option>
+                  <option value="Snacks">🍿 Snacks</option>
+                  <option value="Dinner">🍛 Dinner</option>
+                  <option value="Other">💰 Other</option>
+                </select>
+              </label>
+              <label>
+                Amount
+                <input type="number" step="0.01" id="expenseAmount" placeholder="Amount" required>
+              </label>
+              <input type="hidden" id="expenseDate">
+              <button class="primary-btn" type="submit" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;">
+                <span style="font-size:1.2rem;line-height:1;">+</span> Save Expense
+              </button>
+            </form>
+            <div class="quick-stat-row">
+              <div><span>Daily</span><strong id="dailyTotal">₹0</strong></div>
+              <div><span>Monthly</span><strong id="monthlyTotalExpense">₹0</strong></div>
+              <div><span>Remaining Savings</span><strong id="remainingSavingsDisplay">₹0</strong></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="expense-charts-grid">
+          <article class="premium-panel">
+            <div class="panel-head"><h2>Daily Spending</h2></div>
+            <div class="chart-container"><canvas id="expenseChart"></canvas></div>
+          </article>
+          <article class="premium-panel">
+            <div class="panel-head"><h2>Category Breakdown</h2></div>
+            <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+          </article>
+        </section>
+
+        <section class="premium-panel">
+          <div class="panel-head">
+            <h2>Expense History</h2>
+            <span id="expenseCount" class="muted">0 records</span>
+          </div>
+          <div id="expenseList" class="list"></div>
+        </section>
+
+        <a href="#expenseForm" class="fab-btn" title="Add Expense">+</a>
+      </main>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="loader" id="loader"><div></div></div>
+  <script src="js/script.js"></script>
+  <script>
+    // Live Clock
+    function updateClock() {
+      const now = new Date();
+      const t = document.getElementById('liveClockTime');
+      const d = document.getElementById('liveClockDate');
+      if (t) t.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      if (d) d.textContent = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    updateClock(); setInterval(updateClock, 1000);
+    // Mouse glow
+    const gc = document.getElementById('mouseGlowCursor');
+    document.addEventListener('mousemove', e => { if (gc) { gc.style.left = e.clientX + 'px'; gc.style.top = e.clientY + 'px'; } });
+    // Particles
+    const pc = document.getElementById('bgParticles');
+    if (pc) { for (let i = 0; i < 60; i++) { const p = document.createElement('div'); p.className = 'particle'; const s = 1 + Math.random() * 2.5; p.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;width:${s}px;height:${s}px;animation-duration:${10+Math.random()*18}s;animation-delay:${-Math.random()*18}s;opacity:${0.15+Math.random()*0.45};`; pc.appendChild(p); } }
+  </script>
+</body>
+</html>

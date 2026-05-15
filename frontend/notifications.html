@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications | Trackify</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="premium-dashboard">
+  <div class="night-scene" aria-hidden="true">
+    <div class="moon"></div>
+    <div class="mountains"></div>
+    <div class="lake"></div>
+  </div>
+  <div class="animated-bg subtle">
+    <span></span><span></span><span></span><span></span>
+  </div>
+  <div class="day-landscape">
+    <div class="landscape-sun"></div>
+    <div class="landscape-clouds"></div>
+    <div class="landscape-mountains"></div>
+    <div class="landscape-tree"></div>
+    <div class="landscape-grass"></div>
+  </div>
+
+  <div class="app-wrapper">
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <img src="assets/logo.png" alt="Trackify" class="brand-logo">
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="expense.html">Expenses</a>
+        <a href="todo.html">Todo List</a>
+        <a class="active" href="notifications.html">Notifications</a>
+      </nav>
+      <div class="sidebar-footer" style="position: relative; display: flex; flex-direction: column; gap: 0.5rem;">
+        <button class="profile-trigger" id="openProfileModal" type="button" style="width: 100%;" title="Edit Profile">
+          <span class="profile-mini" data-profile-image data-profile-initials>AK</span>
+          <span data-profile-name>Aman Kumar</span>
+        </button>
+        <button id="logoutBtn" type="button" class="ghost-btn" style="width: 100%; border-color: rgba(255, 109, 125, 0.2); color: #ff6d7d;">
+          Log Out
+        </button>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="app-main-header">
+        <div class="header-greeting">
+          <h1 id="headerGreeting">Notifications</h1>
+          <p>Stay updated with your alerts and reminders.</p>
+        </div>
+        <div class="app-actions">
+          <button class="icon-circle" id="themeToggleBtn" data-theme="night" type="button">☀️</button>
+        </div>
+      </header>
+
+      <main class="premium-shell app-container">
+        <section class="premium-panel">
+          <div class="panel-head">
+            <h2>🔔 All Notifications</h2>
+          </div>
+          <div id="notificationList" class="list"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="loader" id="loader"><div></div></div>
+  <script src="js/script.js"></script>
+</body>
+</html>

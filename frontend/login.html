@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trackify | Luxury Productivity OS</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/login.css">
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-auth.js";
+    window.firebaseConfig = { apiKey: "MOCK_API_KEY", authDomain: "mock-project.firebaseapp.com", projectId: "mock-project" };
+    window.initializeApp = initializeApp;
+    window.getAuth = getAuth;
+    window.signInWithPopup = signInWithPopup;
+    window.GoogleAuthProvider = GoogleAuthProvider;
+  </script>
+</head>
+<body class="auth-page">
+
+  <!-- ========= CINEMATIC BACKGROUND SYSTEM ========= -->
+  <div class="noise-overlay"></div>
+
+  <!-- Layer 1: Deep base gradient -->
+  <div class="bg-layer-1"></div>
+
+  <!-- Layer 2: Ambient Glow Orbs -->
+  <div class="ambient-orbs" aria-hidden="true">
+    <div class="orb orb--gold"></div>
+    <div class="orb orb--blue"></div>
+    <div class="orb orb--purple"></div>
+    <div class="orb orb--cyan"></div>
+  </div>
+
+  <!-- Layer 3: Futuristic grid -->
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <!-- Layer 4: Flowing curve lines -->
+  <svg class="flow-lines" aria-hidden="true" viewBox="0 0 1440 900" preserveAspectRatio="none">
+    <path class="flow-path fp1" d="M-100,300 C200,100 400,500 700,300 S1100,50 1600,250"/>
+    <path class="flow-path fp2" d="M-100,600 C300,400 500,700 800,500 S1200,350 1600,550"/>
+    <path class="flow-path fp3" d="M200,900 C400,700 600,800 900,600 S1300,500 1700,400"/>
+  </svg>
+
+  <!-- Layer 5: Light rays -->
+  <div class="light-rays" aria-hidden="true">
+    <div class="ray ray--1"></div>
+    <div class="ray ray--2"></div>
+    <div class="ray ray--3"></div>
+  </div>
+
+  <!-- Layer 6: Particles -->
+  <div class="bg-layer-2" id="particleContainer"></div>
+
+  <!-- Layer 7: 3D Rings -->
+  <div class="rings-container">
+    <div class="ring-3d r1"></div>
+    <div class="ring-3d r2"></div>
+    <div class="ring-3d r3"></div>
+  </div>
+
+  <!-- Mouse Glow -->
+  <div class="mouse-glow" id="mouseGlow"></div>
+
+  <!-- ========= MAIN LAYOUT ========= -->
+  <main class="login-grid">
+
+    <!-- Left Branding Section -->
+    <section class="branding-section">
+      <div class="logo-container">
+        <div class="logo-glow"></div>
+        <img src="assets/logo.png" alt="Trackify Logo" style="height:60px;object-fit:contain;">
+        <div class="brand-meta">
+          <span class="brand-text">Trackify</span>
+          <span class="brand-tagline-sub">AI POWERED PRODUCTIVITY OS</span>
+        </div>
+      </div>
+
+      <div class="tagline-ai">
+        <span class="word">Your</span>&nbsp;
+        <span class="word accent-word">Smartest</span>&nbsp;
+        <span class="word">Life OS</span>
+      </div>
+      <p class="hero-sub">Track expenses, crush goals, and build better habits — all in one cinematic dashboard.</p>
+
+      <div class="feature-cards">
+        <div class="f-card f1">
+          <span class="f-icon">🎯</span>
+          <div>
+            <strong>Track Expenses</strong>
+            <p>Smart financial tracking with AI insights</p>
+          </div>
+        </div>
+        <div class="f-card f2">
+          <span class="f-icon">✅</span>
+          <div>
+            <strong>Manage Todos</strong>
+            <p>Stay organized with intelligent task planning</p>
+          </div>
+        </div>
+        <div class="f-card f3">
+          <span class="f-icon">📈</span>
+          <div>
+            <strong>Achieve More</strong>
+            <p>Productivity analytics that drive results</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="platform-3d">
+        <div class="platform-base"></div>
+        <div class="bar-3d b1"></div>
+        <div class="bar-3d b2"></div>
+        <div class="bar-3d b3"></div>
+        <div class="bar-3d b4"></div>
+        <div class="neon-arrow"></div>
+      </div>
+    </section>
+
+    <!-- Right Login Section -->
+    <section class="login-section">
+      <div class="login-card premium-glass" id="loginCard">
+        <!-- Card top accent line -->
+        <div class="card-accent-line"></div>
+        <!-- Glare effect -->
+        <div class="glare-container"><div class="glare" id="cardGlare"></div></div>
+        <!-- Inner reflection -->
+        <div class="card-reflection"></div>
+
+        <h2 id="formTitle">Welcome back 👋</h2>
+        <p id="formSubtitle">Glad to see you again! Please login to continue.</p>
+
+        <form id="authForm" class="floating-form">
+          <div class="form-group" id="nameFieldContainer" style="display:none;">
+            <div class="input-wrapper">
+              <input type="text" id="fullName" class="float-input" placeholder=" ">
+              <label class="float-label">Full Name</label>
+              <span class="input-icon">👤</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="input-wrapper">
+              <input type="email" id="email" class="float-input" placeholder=" " required>
+              <label class="float-label">Email address</label>
+              <span class="input-icon">✉</span>
+            </div>
+          </div>
+
+          <div class="form-group" id="passwordFieldContainer">
+            <div class="input-wrapper">
+              <input type="password" id="password" class="float-input" placeholder=" " required>
+              <label class="float-label">Password</label>
+              <span class="input-icon">🔒</span>
+              <span class="toggle-password" onclick="togglePasswordVisibility('password', this)">👁️</span>
+            </div>
+            <a href="#" id="forgotPasswordBtn" class="forgot-link">Forgot password?</a>
+          </div>
+
+          <div class="form-group" id="confirmPasswordFieldContainer" style="display:none;">
+            <div class="input-wrapper">
+              <input type="password" id="confirmPassword" class="float-input" placeholder=" ">
+              <label class="float-label">Confirm Password</label>
+              <span class="input-icon">🔒</span>
+              <span class="toggle-password" onclick="togglePasswordVisibility('confirmPassword', this)">👁️</span>
+            </div>
+          </div>
+
+          <p id="message" style="margin-top:1rem;text-align:center;color:#ff6b6b;font-size:0.9rem;"></p>
+
+          <div class="btn-wrapper">
+            <button type="submit" class="hero-btn" data-mode="login">
+              <span id="submitBtnText">Login</span>
+              <span class="arrow-icon">→</span>
+              <div class="btn-glow-burst"></div>
+            </button>
+            <div class="btn-under-glow"></div>
+          </div>
+        </form>
+
+        <div class="divider"><span>or continue with</span></div>
+
+        <button type="button" id="googleBtn" class="social-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#EA4335" d="M24 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.73a5.75 5.75 0 0 1-2.49 3.77v3.1h4.03c2.35-2.17 3.73-5.38 3.73-9.06z"/><path fill="#34A853" d="M12 24c3.38 0 6.22-1.12 8.28-3.03l-4.03-3.1a7.4 7.4 0 0 1-4.25 1.13 7.4 7.4 0 0 1-6.97-5.14H.92v3.2A11.98 11.98 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.03 16.96a7.4 7.4 0 0 1-.38-2.34c0-.8.14-1.58.38-2.33V9.08H.92A11.98 11.98 0 0 0 0 14.62c0 2.06.53 4 1.48 5.73l3.55-3.39z"/><path fill="#4285F4" d="M12 4.88c1.84 0 3.49.63 4.8 1.87l3.6-3.6C18.2 1.12 15.36 0 12 0 7.43 0 3.48 2.65 1.48 6.54L5.03 9.7a7.4 7.4 0 0 1 6.97-4.82z"/></svg>
+          Continue with Google
+        </button>
+
+        <div class="signup-link" id="toggleAuthModeContainer">
+          Don't have an account? <a href="#" id="registerBtn">Sign up</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/script.js"></script>
+  <script>
+    function togglePasswordVisibility(inputId, iconElement) {
+      const input = document.getElementById(inputId);
+      if (input.type === "password") { input.type = "text"; iconElement.textContent = "🙈"; }
+      else { input.type = "password"; iconElement.textContent = "👁️"; }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      // Mouse Follow Glow
+      const mouseGlow = document.getElementById("mouseGlow");
+      document.addEventListener("mousemove", (e) => {
+        mouseGlow.style.left = `${e.clientX}px`;
+        mouseGlow.style.top = `${e.clientY}px`;
+      });
+
+      // Gold Particles
+      const particleContainer = document.getElementById("particleContainer");
+      for (let i = 0; i < 40; i++) {
+        const p = document.createElement("div");
+        p.className = "gold-particle";
+        const size = Math.random() * 4 + 1.5;
+        const isGold = Math.random() > 0.4;
+        p.style.cssText = `
+          width:${size}px; height:${size}px;
+          left:${Math.random()*100}vw; top:${Math.random()*100}vh;
+          animation-duration:${Math.random()*12+8}s;
+          animation-delay:${-Math.random()*12}s;
+          background:${isGold ? '#D4AF37' : 'rgba(139,92,246,0.7)'};
+          box-shadow:0 0 ${size*3}px ${isGold ? '#F4D068' : '#8B5CF6'};
+          opacity:${0.2+Math.random()*0.5};
+        `;
+        particleContainer.appendChild(p);
+      }
+
+      // 3D Tilt Card + Glare
+      const card = document.getElementById("loginCard");
+      const glare = document.getElementById("cardGlare");
+      if (card && window.innerWidth > 900) {
+        card.addEventListener("mousemove", (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const rotateX = ((y - rect.height/2) / rect.height) * -6;
+          const rotateY = ((x - rect.width/2) / rect.width) * 6;
+          card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(8px)`;
+          glare.style.left = `${x}px`;
+          glare.style.top = `${y}px`;
+          glare.style.opacity = '1';
+        });
+        card.addEventListener("mouseleave", () => {
+          card.style.transform = "perspective(1000px) rotateX(0) rotateY(0) translateZ(0)";
+          glare.style.opacity = '0';
+        });
+      }
+
+      // Forgot Password
+      const forgotBtn = document.getElementById("forgotPasswordBtn");
+      const passField = document.getElementById("passwordFieldContainer");
+      const submitBtn = document.querySelector("button[type='submit']");
+      const submitBtnText = document.getElementById("submitBtnText");
+      const registerBtn = document.getElementById("registerBtn");
+      let isForgotMode = false;
+
+      if (forgotBtn) {
+        forgotBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          isForgotMode = !isForgotMode;
+          if (isForgotMode) {
+            passField.querySelector(".input-wrapper").style.display = "none";
+            document.getElementById("password").required = false;
+            submitBtnText.textContent = "Send Reset Link";
+            submitBtn.dataset.mode = "forgot-password";
+            forgotBtn.textContent = "Back to Login";
+            document.querySelector(".divider").style.display = "none";
+            document.querySelectorAll(".social-btn").forEach(b => b.style.display = "none");
+            document.querySelector(".signup-link").style.display = "none";
+          } else {
+            passField.querySelector(".input-wrapper").style.display = "flex";
+            document.getElementById("password").required = true;
+            submitBtnText.textContent = "Login";
+            submitBtn.dataset.mode = "login";
+            forgotBtn.textContent = "Forgot password?";
+            document.querySelector(".divider").style.display = "flex";
+            document.querySelectorAll(".social-btn").forEach(b => b.style.display = "flex");
+            document.querySelector(".signup-link").style.display = "block";
+          }
+        });
+      }
+
+      // Register Toggle
+      const toggleContainer = document.getElementById("toggleAuthModeContainer");
+      const formTitle = document.getElementById("formTitle");
+      const formSubtitle = document.getElementById("formSubtitle");
+      const nameField = document.getElementById("nameFieldContainer");
+      const googleBtn = document.getElementById("googleBtn");
+      if (registerBtn) {
+        registerBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          if (submitBtn.dataset.mode === "login") {
+            formTitle.textContent = "Create an Account";
+            formSubtitle.textContent = "Sign up to start managing your smart life.";
+            nameField.style.display = "block";
+            document.getElementById("fullName").required = true;
+            document.getElementById("confirmPasswordFieldContainer").style.display = "block";
+            document.getElementById("confirmPassword").required = true;
+            submitBtnText.textContent = "Sign Up";
+            submitBtn.dataset.mode = "register";
+            toggleContainer.innerHTML = `Already have an account? <a href="#" id="loginToggleBtn">Login</a>`;
+            if (forgotBtn) forgotBtn.style.display = "none";
+            document.getElementById("loginToggleBtn").addEventListener("click", (e) => { e.preventDefault(); location.reload(); });
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
