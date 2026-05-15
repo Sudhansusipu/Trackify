@@ -37,127 +37,125 @@ function mockDb(key, def) {
 }
 function mockSave(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
-function mockApi(path, options = {}) {
+async function executeFirebaseApi(path, options = {}) {
   const method = (options.method || "GET").toUpperCase();
-  const body   = options.body ? JSON.parse(options.body) : {};
-  const uid    = () => mockDb("smartLifeUserId", "1");
-
-  /* AUTH */
-  if (path.startsWith("/auth/forgot-password")) {
-    return { success: true, message: "Reset link sent" };
-  }
-  if (path.startsWith("/auth/login")) {
-    const users = mockDb("_users", []);
-    const u = users.find(u => u.email === body.email && u.password === body.password);
-    if (!u) throw new Error("Invalid email or password.");
-    return { userId: u.id, email: u.email };
-  }
-  if (path.startsWith("/auth/register")) {
-    const users = mockDb("_users", []);
-    if (users.find(u => u.email === body.email)) throw new Error("Email already registered.");
-    const u = { id: Date.now().toString(), email: body.email, password: body.password };
-    users.push(u); mockSave("_users", users);
-    return { userId: u.id, email: u.email };
+  const body = options.body ? JSON.parse(options.body) : {};
+  const uid = userId();
+  
+  if (!uid && !path.includes("/auth")) {
+    throw new Error("Unauthorized");
   }
 
-  /* EXPENSES – profile */
-  if (path.includes("/expenses/profile")) {
-    if (method === "POST") { mockSave("_expenseProfile", body); return body; }
-    return mockDb("_expenseProfile", { monthlySalary: 0, totalSavings: 0, spendingLimit: 0 });
-  }
-  /* EXPENSES – close-month */
-  if (path.includes("/expenses/close-month")) {
-    const p = mockDb("_expenseProfile", { totalSavings: 0 });
-    const expenses = mockDb("_expenses", []);
-    const now = new Date();
-    const total = expenses
-      .filter(e => { const d = new Date(e.expenseDate); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })
-      .reduce((s, e) => s + Number(e.amount), 0);
-    const salary = Number(p.monthlySalary || 0);
-    const added  = Math.max(0, salary - total);
-    p.totalSavings = Number(p.totalSavings || 0) + added;
-    mockSave("_expenseProfile", p);
-    return { addedSavings: added };
-  }
-  /* EXPENSES – summary */
-  if (path.includes("/expenses/summary")) {
-    const p  = mockDb("_expenseProfile", { monthlySalary: 0, totalSavings: 0, spendingLimit: 0 });
-    const expenses = mockDb("_expenses", []);
-    const now = new Date();
-    const rangeMatch = e => {
-      const d = new Date(e.expenseDate + "T00:00:00");
-      const range = (path.match(/range=(\w+)/) || [])[1] || "month";
-      if (range === "day")   return d.toDateString() === now.toDateString();
-      if (range === "week")  { const w = new Date(now); w.setDate(now.getDate()-7); return d >= w; }
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    };
-    const total    = expenses.filter(rangeMatch).reduce((s, e) => s + Number(e.amount), 0);
-    const salary   = Number(p.monthlySalary || 0);
-    const savings  = Number(p.totalSavings  || 0);
-    const limit    = Number(p.spendingLimit || 0);
-    const remaining = salary - total;
-    const rate = salary > 0 ? Math.round(((salary - total) / salary) * 100) : 0;
-    const alert = limit > 0 && total > limit ? `⚠️ You exceeded your ₹${limit} spending limit!` : "";
-    return { totalExpenses: total, remainingBalance: remaining, totalSavings: savings, savingsRate: rate, monthlySalary: salary, alert };
-  }
-  /* EXPENSES – analysis */
-  if (path.includes("/expenses/analysis")) {
-    const expenses = mockDb("_expenses", []);
-    const cats = {};
-    expenses.forEach(e => { cats[e.category] = (cats[e.category] || 0) + Number(e.amount); });
-    const top = Object.entries(cats).sort((a,b) => b[1]-a[1])[0];
-    return { categoryTotals: cats, insight: top ? `You spend most on ${top[0]}.` : "Add expenses to unlock insights." };
-  }
-  /* EXPENSES – export */
-  if (path.includes("/expenses/export")) { showToast("Export requires backend."); return null; }
-  /* EXPENSES – delete */
-  if (method === "DELETE" && path.match(/\/expenses\/\d+/)) {
-    const id = path.split("/expenses/")[1];
-    mockSave("_expenses", mockDb("_expenses",[]).filter(e => String(e.id) !== String(id)));
-    return null;
-  }
-  /* EXPENSES – list / add */
+  /* EXPENSES */
   if (path.includes("/expenses")) {
-    if (method === "POST") {
-      const list = mockDb("_expenses", []);
-      const item = { ...body, id: Date.now(), userId: uid() };
-      list.unshift(item); mockSave("_expenses", list);
-      return item;
+    if (path.includes("/profile")) {
+      const docRef = db.collection("profiles").doc(uid);
+      if (method === "POST") { await docRef.set(body, { merge: true }); return body; }
+      const doc = await docRef.get();
+      return doc.exists ? doc.data() : { monthlySalary: 0, totalSavings: 0, spendingLimit: 0 };
     }
-    return mockDb("_expenses", []);
+    if (path.includes("/close-month")) {
+      const docRef = db.collection("profiles").doc(uid);
+      const doc = await docRef.get();
+      const p = doc.exists ? doc.data() : { monthlySalary: 0, totalSavings: 0 };
+      
+      const snap = await db.collection("expenses").where("userId", "==", uid).get();
+      const expenses = snap.docs.map(d => d.data());
+      const now = new Date();
+      const total = expenses
+        .filter(e => { const d = new Date(e.expenseDate); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })
+        .reduce((s, e) => s + Number(e.amount), 0);
+        
+      const salary = Number(p.monthlySalary || 0);
+      const added  = Math.max(0, salary - total);
+      p.totalSavings = Number(p.totalSavings || 0) + added;
+      
+      await docRef.set(p, { merge: true });
+      return { addedSavings: added };
+    }
+    if (path.includes("/summary")) {
+      const docRef = db.collection("profiles").doc(uid);
+      const doc = await docRef.get();
+      const p = doc.exists ? doc.data() : { monthlySalary: 0, totalSavings: 0, spendingLimit: 0 };
+      
+      const snap = await db.collection("expenses").where("userId", "==", uid).get();
+      const expenses = snap.docs.map(d => d.data());
+      
+      const now = new Date();
+      const rangeMatch = e => {
+        if (!e.expenseDate) return false;
+        const d = new Date(e.expenseDate + "T00:00:00");
+        const range = (path.match(/range=(\w+)/) || [])[1] || "month";
+        if (range === "day")   return d.toDateString() === now.toDateString();
+        if (range === "week")  { const w = new Date(now); w.setDate(now.getDate()-7); return d >= w; }
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      };
+      
+      const total = expenses.filter(rangeMatch).reduce((s, e) => s + Number(e.amount), 0);
+      const salary = Number(p.monthlySalary || 0);
+      const savings = Number(p.totalSavings  || 0);
+      const limit = Number(p.spendingLimit || 0);
+      const remaining = salary - total;
+      const rate = salary > 0 ? Math.round(((salary - total) / salary) * 100) : 0;
+      const alert = limit > 0 && total > limit ? `⚠️ You exceeded your ₹${limit} spending limit!` : "";
+      return { totalExpenses: total, remainingBalance: remaining, totalSavings: savings, savingsRate: rate, monthlySalary: salary, alert };
+    }
+    if (path.includes("/analysis")) {
+      const snap = await db.collection("expenses").where("userId", "==", uid).get();
+      const expenses = snap.docs.map(d => d.data());
+      const cats = {};
+      expenses.forEach(e => { cats[e.category] = (cats[e.category] || 0) + Number(e.amount); });
+      const top = Object.entries(cats).sort((a,b) => b[1]-a[1])[0];
+      return { categoryTotals: cats, insight: top ? `You spend most on ${top[0]}.` : "Add expenses to unlock insights." };
+    }
+    if (path.includes("/export")) { 
+      throw new Error("Export requires Cloud Functions."); 
+    }
+    if (method === "DELETE" && path.match(/\/expenses\/\w+/)) {
+      const id = path.split("/expenses/")[1];
+      await db.collection("expenses").doc(id).delete();
+      return null;
+    }
+    if (method === "POST") {
+      const item = { ...body, userId: uid, createdAt: new Date().toISOString() };
+      const docRef = await db.collection("expenses").add(item);
+      return { id: docRef.id, ...item };
+    }
+    if (method === "GET") {
+      const snap = await db.collection("expenses").where("userId", "==", uid).orderBy("createdAt", "desc").get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
   }
 
-  /* TODOS – complete */
-  if (path.match(/\/todos\/\d+\/complete/)) {
-    const id = path.split("/todos/")[1].split("/")[0];
-    const list = mockDb("_todos", []);
-    const t = list.find(t => String(t.id) === String(id));
-    if (t) t.status = "COMPLETED";
-    mockSave("_todos", list); return t;
-  }
-  /* TODOS – delete */
-  if (method === "DELETE" && path.match(/\/todos\/\d+/)) {
-    const id = path.split("/todos/")[1];
-    mockSave("_todos", mockDb("_todos",[]).filter(t => String(t.id) !== String(id)));
-    return null;
-  }
-  /* TODOS – productivity */
-  if (path.includes("/todos/productivity")) {
-    const todos = mockDb("_todos", []);
-    const done  = todos.filter(t => t.status === "COMPLETED");
-    const prodMin = done.reduce((s,t) => s + Number(t.minutesSpent||0), 0);
-    const pct  = todos.length ? Math.round((done.length/todos.length)*100) : 0;
-    return { productiveMinutes: prodMin, wasteMinutes: 0, insight: `${pct}% tasks completed.` };
-  }
-  /* TODOS – list / add */
+  /* TODOS */
   if (path.includes("/todos")) {
-    if (method === "POST") {
-      const list = mockDb("_todos", []);
-      const item = { ...body, id: Date.now(), status: "PENDING", userId: uid() };
-      list.unshift(item); mockSave("_todos", list);
-      return item;
+    if (path.match(/\/todos\/\w+\/complete/)) {
+      const id = path.split("/todos/")[1].split("/")[0];
+      await db.collection("todos").doc(id).update({ status: "COMPLETED" });
+      return { id, status: "COMPLETED" };
     }
-    return mockDb("_todos", []);
+    if (method === "DELETE" && path.match(/\/todos\/\w+/)) {
+      const id = path.split("/todos/")[1];
+      await db.collection("todos").doc(id).delete();
+      return null;
+    }
+    if (path.includes("/productivity")) {
+      const snap = await db.collection("todos").where("userId", "==", uid).get();
+      const todos = snap.docs.map(d => d.data());
+      const done  = todos.filter(t => t.status === "COMPLETED");
+      const prodMin = done.reduce((s,t) => s + Number(t.minutesSpent||0), 0);
+      const pct  = todos.length ? Math.round((done.length/todos.length)*100) : 0;
+      return { productiveMinutes: prodMin, wasteMinutes: 0, insight: `${pct}% tasks completed.` };
+    }
+    if (method === "POST") {
+      const item = { ...body, id: Date.now().toString(), status: "PENDING", userId: uid, createdAt: new Date().toISOString() };
+      const docRef = await db.collection("todos").add(item);
+      return { id: docRef.id, ...item };
+    }
+    if (method === "GET") {
+      const snap = await db.collection("todos").where("userId", "==", uid).orderBy("createdAt", "desc").get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
   }
 
   /* DASHBOARD */
@@ -166,25 +164,49 @@ function mockApi(path, options = {}) {
   }
 
   /* NOTIFICATIONS */
-  if (path.match(/\/notifications\/\d+\/read/)) {
+  if (path.match(/\/notifications\/\w+\/read/)) {
     const id = path.split("/notifications/")[1].split("/")[0];
-    const list = mockDb("_notifications", []);
-    const n = list.find(n => String(n.id) === String(id));
-    if (n) n.readStatus = true;
-    mockSave("_notifications", list); return n;
+    await db.collection("notifications").doc(id).update({ readStatus: true });
+    return { id, readStatus: true };
   }
   if (path.includes("/notifications")) {
-    return mockDb("_notifications", [
-      { id: 1, message: "Welcome to Trackify! Add your first expense.", createdAt: new Date().toISOString(), readStatus: false },
-      { id: 2, message: "Set your monthly salary in Expenses.", createdAt: new Date().toISOString(), readStatus: false }
-    ]);
+    const snap = await db.collection("notifications").where("userId", "==", uid).get();
+    let notifs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (notifs.length === 0) {
+      notifs = [
+        { id: "1", message: "Welcome to Trackify! Add your first expense.", createdAt: new Date().toISOString(), readStatus: false },
+        { id: "2", message: "Set your monthly salary in Expenses.", createdAt: new Date().toISOString(), readStatus: false }
+      ];
+    }
+    return notifs;
+  }
+
+  /* LENDING */
+  if (path.includes("/lending")) {
+    if (method === "DELETE" && path.match(/\/lending\/\w+/)) {
+      const id = path.split("/lending/")[1];
+      await db.collection("lending").doc(id).delete();
+      return null;
+    }
+    if (method === "POST") {
+      const item = { ...body, userId: uid, createdAt: new Date().toISOString() };
+      const docRef = await db.collection("lending").add(item);
+      return { id: docRef.id, ...item };
+    }
+    if (method === "GET") {
+      const snap = await db.collection("lending").where("userId", "==", uid).get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
   }
 
   return null;
 }
-/* ── END OFFLINE MOCK ─────────────────────────────────────────────── */
+/* ── END FIREBASE BRIDGE ─────────────────────────────────────────────── */
 
 function userId() {
+  if (typeof firebase !== 'undefined' && firebase.auth().currentUser) {
+    return firebase.auth().currentUser.uid;
+  }
   return localStorage.getItem("smartLifeUserId");
 }
 
@@ -526,28 +548,8 @@ function showSkeletons(containerId, count = 3, height = "80px") {
 }
 
 async function api(path, options = {}) {
-  try {
-    const response = await fetch(`${API_BASE}${path}`, {
-      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-      ...options
-    });
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Something went wrong" }));
-      throw new Error(error.message || "Request failed");
-    }
-    if (response.status === 204) return null;
-    const text = await response.text();
-    return text ? JSON.parse(text) : null;
-  } catch (err) {
-    if (err instanceof TypeError || err.message === "Failed to fetch" || err.message.includes("fetch")) {
-      try {
-        return mockApi(path, options);
-      } catch (mockErr) {
-        throw mockErr;
-      }
-    }
-    throw err;
-  }
+  // All API calls now perfectly bridge over to Firebase Firestore!
+  return await executeFirebaseApi(path, options);
 }
 
 function requireLogin() {
@@ -559,7 +561,10 @@ function requireLogin() {
 function setupLogout() {
   const button = document.getElementById("logoutBtn");
   if (!button) return;
-  button.addEventListener("click", () => {
+  button.addEventListener("click", async () => {
+    if (typeof firebase !== 'undefined') {
+      await firebase.auth().signOut();
+    }
     localStorage.removeItem("smartLifeUserId");
     localStorage.removeItem("smartLifeEmail");
     location.href = "login.html";
@@ -588,36 +593,17 @@ async function initLogin() {
   if (googleBtn) {
     googleBtn.addEventListener("click", async () => {
       try {
-        if (!window.initializeApp || window.firebaseConfig.apiKey === "MOCK_API_KEY") {
-          message.textContent = "Firebase is not configured yet. Add config to login.html.";
-          // Optional: fallback mock login
-          localStorage.setItem("smartLifeUserId", "googleUser");
-          localStorage.setItem("smartLifeEmail", "google@example.com");
-          location.href = "dashboard.html";
-          return;
-        }
-
-        const app = window.initializeApp(window.firebaseConfig);
-        const auth = window.getAuth(app);
-        const provider = new window.GoogleAuthProvider();
-
-        const result = await window.signInWithPopup(auth, provider);
-        const idToken = await result.user.getIdToken();
-        const displayName = result.user.displayName;
+        const provider = new firebase.auth.GoogleAuthProvider();
+        const result = await firebase.auth().signInWithPopup(provider);
+        const user = result.user;
         
-        if (displayName) {
-          localStorage.setItem("smartLifeName", displayName);
+        if (user.displayName) {
+          localStorage.setItem("smartLifeName", user.displayName);
         }
 
-        const backendResult = await api(`/auth/firebase`, {
-          method: "POST",
-          body: JSON.stringify({ token: idToken })
-        });
-
-        localStorage.setItem("smartLifeUserId", backendResult.userId);
-        localStorage.setItem("smartLifeEmail", backendResult.email);
+        localStorage.setItem("smartLifeUserId", user.uid);
+        localStorage.setItem("smartLifeEmail", user.email);
         location.href = "dashboard.html";
-
       } catch (error) {
         message.textContent = "Google Login failed: " + error.message;
         const form = document.getElementById("authForm");
@@ -634,10 +620,7 @@ async function initLogin() {
     
     if (mode === "forgot-password") {
       try {
-        await api(`/auth/forgot-password`, {
-          method: "POST",
-          body: JSON.stringify({ email })
-        });
+        await firebase.auth().sendPasswordResetEmail(email);
         message.textContent = "Reset link sent to your email!";
         message.style.color = "var(--accent)";
         const form = document.getElementById("authForm");
@@ -651,8 +634,8 @@ async function initLogin() {
       return;
     }
 
-    if (password.length < 4) {
-      message.textContent = "Password must be at least 4 characters.";
+    if (password.length < 6) {
+      message.textContent = "Password must be at least 6 characters.";
       message.style.color = "var(--danger)";
       const form = document.getElementById("authForm");
       if(form) { form.classList.remove("error-shake"); void form.offsetWidth; form.classList.add("error-shake"); }
@@ -676,11 +659,16 @@ async function initLogin() {
         return;
       }
       try {
-        await api(`/auth/request-otp`, {
-          method: "POST",
-          body: JSON.stringify({ email })
-        });
-        showOtpModal(email, password, fullName);
+        const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+        await userCredential.user.updateProfile({ displayName: fullName });
+        localStorage.setItem("smartLifeName", fullName);
+        localStorage.setItem("smartLifeUserId", userCredential.user.uid);
+        localStorage.setItem("smartLifeEmail", userCredential.user.email);
+        
+        const form = document.getElementById("authForm");
+        if(form) { form.classList.remove("success-glow"); void form.offsetWidth; form.classList.add("success-glow"); }
+        
+        setTimeout(() => { location.href = "dashboard.html"; }, 600);
       } catch (error) {
         message.textContent = error.message;
         const form = document.getElementById("authForm");
@@ -690,19 +678,16 @@ async function initLogin() {
     }
 
     try {
-      const result = await api(`/auth/${mode}`, {
-        method: "POST",
-        body: JSON.stringify({ email, password })
-      });
-      localStorage.setItem("smartLifeUserId", result.userId);
-      localStorage.setItem("smartLifeEmail", result.email);
+      const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+      localStorage.setItem("smartLifeUserId", userCredential.user.uid);
+      localStorage.setItem("smartLifeEmail", userCredential.user.email);
       
       const form = document.getElementById("authForm");
       if(form) { form.classList.remove("success-glow"); void form.offsetWidth; form.classList.add("success-glow"); }
       
       setTimeout(() => {
         location.href = "dashboard.html";
-      }, 600); // Wait for animation
+      }, 600);
     } catch (error) {
       message.textContent = error.message;
       const form = document.getElementById("authForm");
@@ -710,141 +695,25 @@ async function initLogin() {
     }
   }
 
-  function showOtpModal(email, password, fullName) {
-    if (document.getElementById("otpModal")) document.getElementById("otpModal").remove();
-    document.body.insertAdjacentHTML("beforeend", `
-      <div class="profile-modal-backdrop open" id="otpModal" style="z-index: 10000;">
-        <form class="profile-modal" id="otpFormModal" style="position: relative;">
-          <button type="button" id="cancelOtpBtn" style="position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; color: var(--muted); font-size: 1.5rem; cursor: pointer;">&times;</button>
-          <div class="profile-modal-head" style="justify-content: center; margin-bottom: 1rem;">
-            <h2 style="font-size: 1.5rem;">Verify Your Email 📧</h2>
-          </div>
-          <p style="text-align: center; color: var(--muted); margin-bottom: 1.5rem;">We've sent a 6-digit code to <strong>${email}</strong>.</p>
-          <label>
-            Enter OTP Code
-            <input type="text" id="otpInput" placeholder="123456" required style="padding: 0.9rem 1rem; text-align: center; font-size: 1.2rem; letter-spacing: 0.5rem;" maxlength="6">
-          </label>
-          <button class="primary-btn" type="submit" style="margin-top: 1.5rem;">Verify & Create Account</button>
-          <div style="text-align: center; margin-top: 1.5rem;">
-            <button type="button" id="resendRegOtpBtn" class="ghost-btn" style="font-size: 0.85rem;" disabled>Resend OTP in <span id="resendRegTimer">30</span>s</button>
-          </div>
-        </form>
-      </div>
-    `);
-
-    let timeLeft = 30;
-    const resendBtn = document.getElementById("resendRegOtpBtn");
-    const timerSpan = document.getElementById("resendRegTimer");
-    
-    const countdown = setInterval(() => {
-      timeLeft--;
-      if (timeLeft <= 0) {
-        clearInterval(countdown);
-        resendBtn.disabled = false;
-        resendBtn.innerHTML = "Resend OTP";
-      } else {
-        timerSpan.textContent = timeLeft;
-      }
-    }, 1000);
-
-    resendBtn.addEventListener("click", async () => {
-      resendBtn.disabled = true;
-      resendBtn.innerHTML = `Resend OTP in <span id="resendRegTimer">30</span>s`;
-      timeLeft = 30;
-      
-      try {
-        await api(`/auth/request-otp`, {
-          method: "POST",
-          body: JSON.stringify({ email })
-        });
-        showToast("OTP Resent!");
-        
-        const newCountdown = setInterval(() => {
-          timeLeft--;
-          if (timeLeft <= 0) {
-            clearInterval(newCountdown);
-            resendBtn.disabled = false;
-            resendBtn.innerHTML = "Resend OTP";
-          } else {
-            document.getElementById("resendRegTimer").textContent = timeLeft;
-          }
-        }, 1000);
-      } catch (err) {
-        showToast(err.message);
-        resendBtn.disabled = false;
-        resendBtn.innerHTML = "Resend OTP";
-      }
-    });
-
-    document.getElementById("cancelOtpBtn").addEventListener("click", () => {
-      clearInterval(countdown);
-      document.getElementById("otpModal").remove();
-    });
-
-    document.getElementById("otpFormModal").addEventListener("submit", async (e) => {
+  if (form) {
+    form.addEventListener("submit", (e) => {
       e.preventDefault();
-      const otp = document.getElementById("otpInput").value.trim();
-      try {
-        const result = await api("/auth/register", {
-          method: "POST",
-          body: JSON.stringify({ email, password, otp, name: fullName })
-        });
-        clearInterval(countdown);
-        document.getElementById("otpModal").remove();
-        localStorage.setItem("smartLifeName", fullName);
-        localStorage.setItem("smartLifeUserId", result.userId);
-        localStorage.setItem("smartLifeEmail", result.email);
-        location.href = "dashboard.html";
-      } catch (err) {
-        showToast(err.message);
-      }
+      const submitBtn = document.querySelector("button[type='submit']");
+      const mode = submitBtn ? submitBtn.dataset.mode : "login";
+      submit(mode);
     });
   }
 
-  function showOnboardingModal(userId, email) {
-    if (!document.getElementById("onboardingModal")) {
-      document.body.insertAdjacentHTML("beforeend", `
-        <div class="profile-modal-backdrop open" id="onboardingModal" style="z-index: 10000;">
-          <form class="profile-modal" id="onboardingFormModal">
-            <div class="profile-modal-head" style="justify-content: center; margin-bottom: 1rem;">
-              <h2 style="font-size: 1.5rem;">Welcome to Trackify! 🎉</h2>
-            </div>
-            <p style="text-align: center; color: var(--muted); margin-bottom: 1.5rem;">Before we start, what should we call you?</p>
-            <label>
-              Your Name
-              <input type="text" id="onboardingNameInput" placeholder="e.g. Aman Kumar" required style="padding: 0.9rem 1rem;">
-            </label>
-            <button class="primary-btn" type="submit" style="margin-top: 1.5rem;">Continue to Dashboard</button>
-          </form>
-        </div>
-      `);
-
-      document.getElementById("onboardingFormModal").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const name = document.getElementById("onboardingNameInput").value.trim();
-        if (name) {
-          localStorage.setItem("smartLifeName", name);
-        }
-        localStorage.setItem("smartLifeUserId", userId);
-        localStorage.setItem("smartLifeEmail", email);
-        location.href = "dashboard.html";
-      });
-    } else {
-      document.getElementById("onboardingModal").classList.add("open");
-    }
-  }
-
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const submitBtn = document.querySelector("button[type='submit']");
-    const mode = submitBtn ? submitBtn.dataset.mode : "login";
-    submit(mode);
-  });
   if (registerBtn) {
     registerBtn.addEventListener("click", (e) => {
       e.preventDefault();
       submit("register");
     });
+  }
+  
+  const forgotBtn = document.getElementById("forgotPasswordBtn");
+  if (forgotBtn) {
+    forgotBtn.addEventListener("click", () => submit("forgot-password"));
   }
 }
 
